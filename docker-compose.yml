@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: ./backend
+
+
+    container_name: temporary-access-backend
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/data:/app/data
+
+  frontend:
+    # Constrói a imagem usando o Dockerfile do frontend.
+    build:
+      context: ./frontend
+    container_name: temporary-access-frontend
+    ports:
+      - "5173:5173"
+
+    volumes:
+
+      - ./frontend:/app
+      - /app/node_modules
+
+    # O frontend depende do backend estar iniciado.
+    depends_on:
+      - backend
