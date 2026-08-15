@@ -1,8 +1,12 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # O banco ficará dentro da pasta data, os dados vao ficar dentro do volume do container, para que não se percam ao reiniciar o container.
 DATABASE_URL = "sqlite:///./data/temporary_access.db"
+
+os.makedirs("./data", exist_ok=True)
 
 engine = create_engine(
     DATABASE_URL,

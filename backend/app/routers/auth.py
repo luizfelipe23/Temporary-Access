@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.core.security import get_current_user
 
 from app.database.connection import get_db
 from app.models.user import User
@@ -107,3 +108,16 @@ def login_user(
     return TokenResponse(
         access_token=access_token,
     )
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+)
+def get_me(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retorna os dados do usuário atualmente autenticado.
+    """
+
+    return current_user
