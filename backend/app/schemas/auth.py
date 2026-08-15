@@ -31,3 +31,23 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LoginRequest(BaseModel):
+    """
+    Credenciais necessárias para autenticar um usuário.
+    """
+
+    email: EmailStr
+
+    password: str
+
+
+class TokenResponse(BaseModel):
+    """
+    Resposta retornada após um login bem-sucedido.
+    """
+
+    access_token: str
+
+    token_type: str = "bearer"

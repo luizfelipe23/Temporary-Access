@@ -3,11 +3,20 @@ from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
 from app.models.user import User
-from app.schemas.auth import UserCreate, UserResponse
+from app.schemas.auth import (
+    LoginRequest,
+    TokenResponse,
+    UserCreate,
+    UserResponse,
+)
+from app.services.auth_service import (
+    create_access_token,
+    verify_password,
+)
 from app.services.password_service import hash_password
 
 
-# Todas as rotas deste arquivo começarão com /api/auth.
+# Todas as rotas deste arquivo começam com /api/auth.
 router = APIRouter(
     prefix="/api/auth",
     tags=["Authentication"],
@@ -27,7 +36,7 @@ def register_user(
     Cria um novo usuário no sistema.
     """
 
-    # Verifica se já existe um usuário utilizando esse email.
+    # Verifica se já existe um usuário usando o email informado.
     existing_user = (
         db.query(User)
         .filter(User.email == user_data.email)
@@ -40,8 +49,7 @@ def register_user(
             detail="Email already registered",
         )
 
-    # Nunca salvamos a senha original.
-    # Primeiro geramos o hash e só depois persistimos o usuário. # isso é importante para que a senha original nunca seja armazenada no banco de dados.
+    # A senha original nunca vai para o banco.
     password_hash = hash_password(user_data.password)
 
     user = User(
@@ -50,11 +58,52 @@ def register_user(
         password_hash=password_hash,
     )
 
-
     db.add(user)
-
-    db.commit() # salva no banco de dados
-
-    db.refresh(user) # id do banco
+    db.commit()
+    db.refresh(user)
 
     return user
+
+
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+)
+def login_user(
+    login_data: LoginRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Autentica um usuário e retorna um JWT.
+    """
+
+    # Procura o usuário pelo email.
+    user = (
+        db.query(User)
+        .filter(User.email == login_data.email)
+        .first()
+    )
+
+    # não informa erros 
+    if not user or not verify_password(
+        login_data.password,
+        user.password_hash,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    # Usuário existe, senha está correta e a conta está ativa.
+    if not user.active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive",
+        )
+
+    # Gera o token de acesso.
+    access_token = create_access_token(user)
+
+    return TokenResponse(
+        access_token=access_token,
+    )
